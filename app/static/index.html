@@ -6,7 +6,6 @@
 <title>Listenery | Orchestration Studio</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <script id="tailwind-config">
   tailwind.config = {
     darkMode: "class",
@@ -82,16 +81,107 @@
   }
 </script>
 <style>
-  @keyframes icon-breathe { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.12); opacity: 0.85; } }
-  .icon-breathe { animation: icon-breathe 2.4s ease-in-out infinite; display: inline-flex; }
+  /* Cog Rotation */
+  @keyframes spin-slow {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  .group:hover .animate-cog, .hover-trigger:hover .animate-cog {
+    animation: spin-slow 4s linear infinite;
+    transform-origin: center;
+  }
+
+  /* Shield Wiggle */
+  @keyframes shield-wiggle {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(-8deg); }
+    75% { transform: rotate(8deg); }
+  }
+  .group:hover .animate-shield, .hover-trigger:hover .animate-shield {
+    animation: shield-wiggle 0.5s ease-in-out;
+    transform-origin: center;
+  }
+
+  /* Clock Hands Spin */
+  @keyframes clock-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  .group:hover .animate-clock-hand, .hover-trigger:hover .animate-clock-hand {
+    animation: clock-spin 2s linear infinite;
+    transform-origin: 12px 12px;
+  }
+
+  /* Paper Plane Launch */
+  @keyframes plane-fly {
+    0% { transform: translate(0, 0) scale(1); opacity: 1; }
+    49% { transform: translate(14px, -14px) scale(0.8); opacity: 0; }
+    50% { transform: translate(-14px, 14px) scale(0.8); opacity: 0; }
+    100% { transform: translate(0, 0) scale(1); opacity: 1; }
+  }
+  .group:hover .animate-plane, .hover-trigger:hover .animate-plane {
+    animation: plane-fly 0.8s ease-in-out;
+  }
+
+  /* Slider Move */
+  @keyframes slider-slide-1 {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(4px); }
+  }
+  @keyframes slider-slide-2 {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(-4px); }
+  }
+  .group:hover .animate-slider-1, .hover-trigger:hover .animate-slider-1 {
+    animation: slider-slide-1 0.8s ease-in-out infinite;
+  }
+  .group:hover .animate-slider-2, .hover-trigger:hover .animate-slider-2 {
+    animation: slider-slide-2 0.8s ease-in-out infinite;
+  }
+
+  /* Sparkle Spin / Flicker */
+  @keyframes sparkle-pulse {
+    0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    50% { transform: scale(1.2) rotate(45deg); opacity: 0.85; }
+  }
+  button:hover .animate-sparkle {
+    animation: sparkle-pulse 1.2s ease-in-out infinite;
+    transform-origin: center;
+  }
+
+  /* Bolt Flash */
+  @keyframes bolt-flash {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-2px) scale(1.1); filter: drop-shadow(0 0 4px rgba(132, 85, 239, 0.6)); }
+  }
+  button:hover .animate-bolt {
+    animation: bolt-flash 0.6s ease-in-out;
+  }
+
+  /* Error Shake */
+  @keyframes error-shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    75% { transform: translateX(2px); }
+  }
+  .group:hover .animate-error, .hover-trigger:hover .animate-error {
+    animation: error-shake 0.4s ease-in-out 2;
+  }
+
+  /* Wave Flow for the logo */
+  @keyframes wave-flow {
+    0% { stroke-dashoffset: 0; }
+    100% { stroke-dashoffset: -20; }
+  }
+  .logo-container:hover .animate-wave {
+    stroke-dasharray: 6 6;
+    animation: wave-flow 1.5s linear infinite;
+  }
 
   @keyframes wave-bar { 0%, 100% { height: 5px; } 50% { height: 14px; } }
   .wave-bar { animation: wave-bar 1s ease-in-out infinite; width: 3px; border-radius: 9999px; }
   .wave-bar:nth-child(2) { animation-delay: 0.15s; }
   .wave-bar:nth-child(3) { animation-delay: 0.3s; }
-
-  @keyframes icon-tick { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(-8deg); } 75% { transform: rotate(8deg); } }
-  .icon-tick { animation: icon-tick 1.8s ease-in-out infinite; display: inline-flex; }
 
   @keyframes stream-fade-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
   @keyframes ring-fade { 0% { box-shadow: 0 0 0 3px rgba(107, 56, 212, 0.35); } 100% { box-shadow: 0 0 0 0 rgba(107, 56, 212, 0); } }
@@ -105,9 +195,12 @@
 
 <!-- Side Nav -->
 <nav class="bg-surface-container-lowest text-primary font-label-md shadow-sm border-r border-outline-variant flex flex-col h-screen py-lg px-md w-64 fixed left-0 top-0 z-50">
-  <div class="mb-xl flex items-center gap-sm">
+  <div class="mb-xl flex items-center gap-sm logo-container cursor-pointer">
     <div class="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container">
-      <span class="material-symbols-outlined icon-breathe" style="font-variation-settings: 'FILL' 1;">waves</span>
+      <!-- Wave SVG Logo -->
+      <svg class="w-5 h-5 text-on-primary-container" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 12c3-4 5-4 8 0s5 4 8 0 2-2 4-2" class="animate-wave"></path>
+      </svg>
     </div>
     <div>
       <h1 class="font-headline-sm text-headline-sm font-bold text-on-surface">Orchestration Studio</h1>
@@ -116,7 +209,12 @@
   </div>
 
   <button id="seedBtn" onclick="seedData()" class="bg-primary text-on-primary hover:bg-surface-tint transition-colors w-full py-2 rounded-lg font-bold mb-md shadow-sm flex items-center justify-center gap-2">
-    <span class="material-symbols-outlined text-[18px]">auto_awesome</span>
+    <!-- Seed Sparkles SVG -->
+    <svg class="w-[18px] h-[18px] animate-sparkle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275Z"></path>
+      <path d="m5 3 1 2.5L8.5 6 6 7 5 9.5 4 7 1.5 6 4 5Z" opacity="0.7"></path>
+      <path d="m19 17 1 2.5 2.5.5-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1Z" opacity="0.7"></path>
+    </svg>
     Seed Workspace
   </button>
   <div class="mb-lg">
@@ -130,28 +228,53 @@
 
   <ul class="flex-1 flex flex-col gap-unit">
     <li>
-      <a class="bg-primary-container text-on-primary-container rounded-lg font-bold transition-all duration-200 ease-in-out flex items-center gap-sm px-4 py-2" href="#">
-        <span class="material-symbols-outlined">dashboard</span>
+      <a class="bg-primary-container text-on-primary-container rounded-lg font-bold transition-all duration-200 ease-in-out flex items-center gap-sm px-4 py-2 group" href="#">
+        <!-- Dashboard SVG -->
+        <svg class="w-5 h-5 transition-transform group-hover:scale-110" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="9" rx="1"></rect>
+          <rect x="14" y="3" width="7" height="5" rx="1"></rect>
+          <rect x="14" y="12" width="7" height="9" rx="1"></rect>
+          <rect x="3" y="16" width="7" height="5" rx="1"></rect>
+        </svg>
         Studio
       </a>
     </li>
     <li>
-      <a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-all duration-200 ease-in-out flex items-center gap-sm px-4 py-2" href="#">
-        <span class="material-symbols-outlined">rule</span>
+      <a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-all duration-200 ease-in-out flex items-center gap-sm px-4 py-2 group" href="#">
+        <!-- Sliders SVG -->
+        <svg class="w-5 h-5 text-on-surface-variant group-hover:text-primary transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="4" y1="21" x2="4" y2="14"></line>
+          <line x1="4" y1="10" x2="4" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12" y2="3"></line>
+          <line x1="20" y1="21" x2="20" y2="16"></line>
+          <line x1="20" y1="12" x2="20" y2="3"></line>
+          <line x1="2" y1="14" x2="6" y2="14" class="animate-slider-1"></line>
+          <line x1="10" y1="8" x2="14" y2="8" class="animate-slider-2"></line>
+          <line x1="18" y1="16" x2="22" y2="16" class="animate-slider-1"></line>
+        </svg>
         Rules
       </a>
     </li>
     <li>
-      <a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-all duration-200 ease-in-out flex items-center gap-sm px-4 py-2" href="#">
-        <span class="material-symbols-outlined">security</span>
+      <a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-all duration-200 ease-in-out flex items-center gap-sm px-4 py-2 group" href="#">
+        <!-- Shield Check SVG -->
+        <svg class="w-5 h-5 text-on-surface-variant group-hover:text-primary transition-colors animate-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          <path d="m9 11 2 2 4-4"></path>
+        </svg>
         Safeguards
       </a>
     </li>
   </ul>
   <ul class="flex flex-col gap-unit mt-auto">
     <li>
-      <a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-all duration-200 ease-in-out flex items-center gap-sm px-4 py-2" href="#">
-        <span class="material-symbols-outlined">settings</span>
+      <a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-all duration-200 ease-in-out flex items-center gap-sm px-4 py-2 group" href="#">
+        <!-- Cog Settings SVG -->
+        <svg class="w-5 h-5 text-on-surface-variant group-hover:text-primary transition-colors animate-cog" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
         Settings
       </a>
     </li>
@@ -164,28 +287,56 @@
   <!-- Stat Header -->
   <header class="min-h-20 bg-white/60 backdrop-blur-md border-b border-white/60 shadow-[0_20px_25px_-5px_rgba(15,23,42,0.05)] flex items-center px-margin-desktop py-sm justify-center z-40 shrink-0">
     <div class="flex flex-wrap items-center gap-md w-full max-w-5xl">
-      <div id="chipSent" class="bg-status-sent/12 text-status-sent px-4 py-2 rounded-lg flex items-center gap-2 border border-border-glass">
-        <span class="material-symbols-outlined text-[18px]">send</span>
+      <div id="chipSent" class="bg-status-sent/12 text-status-sent px-4 py-2 rounded-lg flex items-center gap-2 border border-border-glass group hover:bg-status-sent/18 transition-colors cursor-default">
+        <!-- Sent Icon (Paper Plane) -->
+        <svg class="w-[18px] h-[18px] animate-plane" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
         <span class="font-label-md">Sent</span>
         <span class="font-data-mono font-bold ml-2" data-value>0</span>
       </div>
-      <div id="chipPending" class="bg-status-pending/12 text-status-pending px-4 py-2 rounded-lg flex items-center gap-2 border border-border-glass">
-        <span class="material-symbols-outlined text-[18px] icon-tick">schedule</span>
+      <div id="chipPending" class="bg-status-pending/12 text-status-pending px-4 py-2 rounded-lg flex items-center gap-2 border border-border-glass group hover:bg-status-pending/18 transition-colors cursor-default">
+        <!-- Pending Icon (Clock) -->
+        <svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14" class="animate-clock-hand"></polyline>
+        </svg>
         <span class="font-label-md">Pending</span>
         <span class="font-data-mono font-bold ml-2" data-value>0</span>
       </div>
-      <div id="chipSuppressed" class="bg-status-suppressed/12 text-status-suppressed px-4 py-2 rounded-lg flex items-center gap-2 border border-border-glass">
-        <span class="material-symbols-outlined text-[18px]">shield</span>
+      <div id="chipSuppressed" class="bg-status-suppressed/12 text-status-suppressed px-4 py-2 rounded-lg flex items-center gap-2 border border-border-glass group hover:bg-status-suppressed/18 transition-colors cursor-default">
+        <!-- Suppressed Icon (Shield Check) -->
+        <svg class="w-[18px] h-[18px] animate-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          <path d="m9 11 2 2 4-4"></path>
+        </svg>
         <span class="font-label-md">Suppressed</span>
         <span class="font-data-mono font-bold ml-2" data-value>0</span>
       </div>
-      <div id="chipSampled" class="bg-status-sampled/12 text-status-sampled px-4 py-2 rounded-lg flex items-center gap-2 border border-border-glass">
-        <span class="material-symbols-outlined text-[18px]">tune</span>
+      <div id="chipSampled" class="bg-status-sampled/12 text-status-sampled px-4 py-2 rounded-lg flex items-center gap-2 border border-border-glass group hover:bg-status-sampled/18 transition-colors cursor-default">
+        <!-- Sampled Out Icon (Sliders) -->
+        <svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="4" y1="21" x2="4" y2="14"></line>
+          <line x1="4" y1="10" x2="4" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12" y2="3"></line>
+          <line x1="20" y1="21" x2="20" y2="16"></line>
+          <line x1="20" y1="12" x2="20" y2="3"></line>
+          <line x1="2" y1="14" x2="6" y2="14" class="animate-slider-1"></line>
+          <line x1="10" y1="8" x2="14" y2="8" class="animate-slider-2"></line>
+          <line x1="18" y1="16" x2="22" y2="16" class="animate-slider-1"></line>
+        </svg>
         <span class="font-label-md">Sampled Out</span>
         <span class="font-data-mono font-bold ml-2" data-value>0</span>
       </div>
-      <div id="chipFailed" class="bg-status-risk/12 text-status-risk px-4 py-2 rounded-lg flex items-center gap-2 border border-border-glass">
-        <span class="material-symbols-outlined text-[18px]">error</span>
+      <div id="chipFailed" class="bg-status-risk/12 text-status-risk px-4 py-2 rounded-lg flex items-center gap-2 border border-border-glass group hover:bg-status-risk/18 transition-colors cursor-default">
+        <!-- Failed Icon (Alert Circle) -->
+        <svg class="w-[18px] h-[18px] animate-error" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
         <span class="font-label-md">Failed</span>
         <span class="font-data-mono font-bold ml-2" data-value>0</span>
       </div>
@@ -211,8 +362,12 @@
             </div>
             <div class="mt-4 pt-4 border-t border-surface-container-low flex items-center justify-between">
               <span class="text-text-muted font-body-sm">Tried a new feature</span>
-              <button onclick="triggerQuick('maneesh', 'feature_tried', 'maneesh@example.com')" class="text-primary font-label-md flex items-center gap-1 hover:underline">
-                <span class="material-symbols-outlined text-[16px]">bolt</span> Simulate
+              <button onclick="triggerQuick('maneesh', 'feature_tried', 'maneesh@example.com')" class="text-primary font-label-md flex items-center gap-1 hover:underline group">
+                <!-- Lightning Bolt SVG -->
+                <svg class="w-4 h-4 text-primary animate-bolt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                </svg>
+                Simulate
               </button>
             </div>
           </div>
@@ -227,8 +382,12 @@
             </div>
             <div class="mt-4 pt-4 border-t border-surface-container-low flex items-center justify-between">
               <span class="text-text-muted font-body-sm">About to churn</span>
-              <button onclick="triggerQuick('dharma', 'user_churned', 'dharma@example.com')" class="text-primary font-label-md flex items-center gap-1 hover:underline">
-                <span class="material-symbols-outlined text-[16px]">bolt</span> Simulate
+              <button onclick="triggerQuick('dharma', 'user_churned', 'dharma@example.com')" class="text-primary font-label-md flex items-center gap-1 hover:underline group">
+                <!-- Lightning Bolt SVG -->
+                <svg class="w-4 h-4 text-primary animate-bolt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                </svg>
+                Simulate
               </button>
             </div>
           </div>
@@ -283,8 +442,8 @@
     <aside class="w-80 shrink-0 bg-white/80 backdrop-blur-xl border border-border-glass rounded-xl shadow-[0_20px_25px_-5px_rgba(15,23,42,0.05)] p-md flex flex-col self-start sticky top-xl">
       <div class="flex justify-between items-center mb-lg pb-sm border-b border-surface-container-low">
         <h3 class="font-headline-sm text-headline-sm text-text-primary">Decision Trail</h3>
-        <button onclick="closeTrail()" class="text-text-muted hover:bg-surface-container-low rounded-full p-1 transition-colors">
-          <span class="material-symbols-outlined text-sm">close</span>
+        <button onclick="closeTrail()" class="text-text-muted hover:bg-surface-container-low rounded-full p-1 transition-colors flex items-center justify-center">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </button>
       </div>
       <div id="trailBody">

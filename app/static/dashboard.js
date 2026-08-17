@@ -35,7 +35,12 @@ function showToast(message, type = 'success') {
   toast.className = `px-4 py-3 rounded-lg text-xs font-semibold text-white shadow-xl pointer-events-auto flex items-center gap-2 transition-all transform translate-y-2 opacity-0 ${
     type === 'success' ? 'bg-status-sent' : 'bg-status-risk'
   }`;
-  toast.innerHTML = `<span class="material-symbols-outlined text-[16px]">${type === 'success' ? 'check_circle' : 'error'}</span><span>${escapeHtml(message)}</span>`;
+  
+  const iconSvg = type === 'success' 
+    ? `<svg class="w-4 h-4 text-white animate-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`
+    : `<svg class="w-4 h-4 text-white animate-error" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></svg>`;
+
+  toast.innerHTML = `${iconSvg}<span>${escapeHtml(message)}</span>`;
   container.appendChild(toast);
 
   setTimeout(() => toast.classList.remove('translate-y-2', 'opacity-0'), 50);
@@ -48,7 +53,18 @@ function showToast(message, type = 'success') {
 async function seedData() {
   const seedBtn = document.getElementById('seedBtn');
   const originalHtml = seedBtn.innerHTML;
-  seedBtn.innerHTML = '<span class="material-symbols-outlined text-[18px] animate-spin">progress_activity</span> Seeding...';
+  seedBtn.innerHTML = `
+    <svg class="w-[18px] h-[18px] animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="12" y1="2" x2="12" y2="6"></line>
+      <line x1="12" y1="18" x2="12" y2="22"></line>
+      <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+      <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+      <line x1="2" y1="12" x2="6" y2="12"></line>
+      <line x1="18" y1="12" x2="22" y2="12"></line>
+      <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+      <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+    </svg>
+    Seeding...`;
   seedBtn.disabled = true;
 
   try {
@@ -218,9 +234,9 @@ function renderStream(dispatches) {
       const enterClass = isNew ? 'stream-item-new' : '';
       const enterStyle = isNew ? `style="animation-delay: ${newIndex++ * 60}ms"` : '';
       return `
-        <div onclick="selectDispatch('${d.id}')" ${enterStyle} class="${enterClass} bg-white/60 backdrop-blur-[16px] rounded-lg border ${selected ? 'border-primary' : 'border-border-glass'} p-md shadow-sm flex items-center gap-md cursor-pointer hover:shadow-md transition-shadow">
+        <div onclick="selectDispatch('${d.id}')" ${enterStyle} class="${enterClass} bg-white/60 backdrop-blur-[16px] rounded-lg border ${selected ? 'border-primary' : 'border-border-glass'} p-md shadow-sm flex items-center gap-md cursor-pointer hover:shadow-md transition-shadow group">
           <div class="w-10 h-10 rounded-full bg-${meta.color}/12 text-${meta.color} flex items-center justify-center shrink-0">
-            <span class="material-symbols-outlined">${meta.icon}</span>
+            ${svgIconFor(d.status, "w-5 h-5")}
           </div>
           <div class="flex-1 min-w-0">
             <p class="font-body-md text-text-primary truncate">${headlineFor(d)}</p>
@@ -362,6 +378,50 @@ function escapeHtml(str) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+function svgIconFor(status, sizeClass = "w-5 h-5") {
+  switch (status) {
+    case 'sent':
+      return `
+        <svg class="${sizeClass} animate-plane" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>`;
+    case 'pending':
+      return `
+        <svg class="${sizeClass}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14" class="animate-clock-hand"></polyline>
+        </svg>`;
+    case 'skipped_duplicate':
+      return `
+        <svg class="${sizeClass} animate-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          <path d="m9 11 2 2 4-4"></path>
+        </svg>`;
+    case 'skipped_sampled_out':
+      return `
+        <svg class="${sizeClass}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="4" y1="21" x2="4" y2="14"></line>
+          <line x1="4" y1="10" x2="4" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12" y2="3"></line>
+          <line x1="20" y1="21" x2="20" y2="16"></line>
+          <line x1="20" y1="12" x2="20" y2="3"></line>
+          <line x1="2" y1="14" x2="6" y2="14" class="animate-slider-1"></line>
+          <line x1="10" y1="8" x2="14" y2="8" class="animate-slider-2"></line>
+          <line x1="18" y1="16" x2="22" y2="16" class="animate-slider-1"></line>
+        </svg>`;
+    case 'failed':
+    default:
+      return `
+        <svg class="${sizeClass} animate-error" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>`;
+  }
 }
 
 fetchDispatches();
