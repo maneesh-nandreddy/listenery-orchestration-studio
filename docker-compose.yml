@@ -1,0 +1,86 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-listenery}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-listenery}
+      POSTGRES_DB: ${POSTGRES_DB:-listenery}
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-listenery} -d ${POSTGRES_DB:-listenery}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "${REDIS_PORT:-6380}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  migrate:
+    build: .
+    command: alembic upgrade head
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-listenery}:${POSTGRES_PASSWORD:-listenery}@postgres:5432/${POSTGRES_DB:-listenery}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    build: .
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "${API_PORT:-8000}:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-listenery}:${POSTGRES_PASSWORD:-listenery}@postgres:5432/${POSTGRES_DB:-listenery}
+      REDIS_URL: redis://redis:6379/0
+      DISPATCH_POLL_INTERVAL_SECONDS: ${DISPATCH_POLL_INTERVAL_SECONDS:-10}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  worker:
+    build: .
+    command: celery -A app.worker.celery_app worker --loglevel=info
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-listenery}:${POSTGRES_PASSWORD:-listenery}@postgres:5432/${POSTGRES_DB:-listenery}
+      REDIS_URL: redis://redis:6379/0
+      DISPATCH_POLL_INTERVAL_SECONDS: ${DISPATCH_POLL_INTERVAL_SECONDS:-10}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  beat:
+    build: .
+    command: celery -A app.worker.celery_app beat --loglevel=info
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-listenery}:${POSTGRES_PASSWORD:-listenery}@postgres:5432/${POSTGRES_DB:-listenery}
+      REDIS_URL: redis://redis:6379/0
+      DISPATCH_POLL_INTERVAL_SECONDS: ${DISPATCH_POLL_INTERVAL_SECONDS:-10}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  pgdata:
+

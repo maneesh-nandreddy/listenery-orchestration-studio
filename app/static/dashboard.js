@@ -1,0 +1,368 @@
+let currentApiKey = localStorage.getItem('listenery_api_key') || '';
+let selectedDispatchId = null;
+let lastDispatches = [];
+let knownDispatchIds = new Set();
+let firstStreamRender = true;
+
+const apiKeyInput = document.getElementById('apiKeyInput');
+apiKeyInput.value = currentApiKey;
+updateConnectionStatus();
+
+apiKeyInput.addEventListener('input', (e) => {
+  currentApiKey = e.target.value.trim();
+  localStorage.setItem('listenery_api_key', currentApiKey);
+  updateConnectionStatus();
+  fetchDispatches();
+});
+
+function updateConnectionStatus() {
+  const el = document.getElementById('connectionStatus');
+  if (currentApiKey) {
+    el.innerHTML = `
+      <span class="relative flex h-2 w-2">
+        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-sent opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-2 w-2 bg-status-sent"></span>
+      </span>
+      <span>Connected</span>`;
+  } else {
+    el.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-status-sampled"></span><span>Not connected</span>`;
+  }
+}
+
+function showToast(message, type = 'success') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `px-4 py-3 rounded-lg text-xs font-semibold text-white shadow-xl pointer-events-auto flex items-center gap-2 transition-all transform translate-y-2 opacity-0 ${
+    type === 'success' ? 'bg-status-sent' : 'bg-status-risk'
+  }`;
+  toast.innerHTML = `<span class="material-symbols-outlined text-[16px]">${type === 'success' ? 'check_circle' : 'error'}</span><span>${escapeHtml(message)}</span>`;
+  container.appendChild(toast);
+
+  setTimeout(() => toast.classList.remove('translate-y-2', 'opacity-0'), 50);
+  setTimeout(() => {
+    toast.classList.add('opacity-0');
+    setTimeout(() => toast.remove(), 300);
+  }, 3500);
+}
+
+async function seedData() {
+  const seedBtn = document.getElementById('seedBtn');
+  const originalHtml = seedBtn.innerHTML;
+  seedBtn.innerHTML = '<span class="material-symbols-outlined text-[18px] animate-spin">progress_activity</span> Seeding...';
+  seedBtn.disabled = true;
+
+  try {
+    const res = await fetch('/admin/seed', { method: 'POST' });
+    if (res.ok) {
+      const data = await res.json();
+      currentApiKey = data.api_key;
+      apiKeyInput.value = currentApiKey;
+      localStorage.setItem('listenery_api_key', currentApiKey);
+      updateConnectionStatus();
+      showToast('Workspace seeded — API key active');
+      fetchDispatches();
+    } else {
+      showToast('Failed to seed workspace', 'error');
+    }
+  } catch (err) {
+    console.error('Seed error:', err);
+    showToast('Failed to reach server', 'error');
+  } finally {
+    seedBtn.innerHTML = originalHtml;
+    seedBtn.disabled = false;
+  }
+}
+
+async function triggerQuick(userId, eventName, email) {
+  if (!currentApiKey) {
+    showToast('Seed the workspace or enter an API key first', 'error');
+    return;
+  }
+
+  try {
+    const res = await fetch('/events', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${currentApiKey}`,
+      },
+      body: JSON.stringify({
+        event_name: eventName,
+        user_id: userId,
+        email: email,
+        properties: { source: 'orchestration_studio' },
+        timestamp: new Date().toISOString(),
+      }),
+    });
+
+    if (res.status === 202) {
+      showToast(`Signal emitted for ${userId} (${eventName})`);
+      setTimeout(fetchDispatches, 400);
+    } else {
+      const err = await res.json();
+      showToast(`Error: ${err.detail || 'Event rejected'}`, 'error');
+    }
+  } catch (err) {
+    console.error('Trigger error:', err);
+    showToast('Network error while dispatching event', 'error');
+  }
+}
+
+async function submitCustomEvent(e) {
+  e.preventDefault();
+  const userId = document.getElementById('userIdInput').value.trim();
+  const email = document.getElementById('emailInput').value.trim();
+  const eventName = document.getElementById('eventNameSelect').value;
+  await triggerQuick(userId, eventName, email);
+}
+
+async function fetchDispatches() {
+  if (!currentApiKey) {
+    document.getElementById('streamContainer').innerHTML = `
+      <div class="p-8 text-center text-text-muted font-body-sm">
+        Seed the workspace or enter an API key to see live dispatches.
+      </div>`;
+    updateStats([]);
+    return;
+  }
+
+  try {
+    const res = await fetch('/dispatches', {
+      headers: { 'Authorization': `Bearer ${currentApiKey}` },
+    });
+
+    if (!res.ok) {
+      if (res.status === 401) {
+        document.getElementById('streamContainer').innerHTML = `
+          <div class="p-8 text-center text-status-risk font-body-sm">
+            Invalid API key. Click "Seed Workspace" to get a fresh one.
+          </div>`;
+        updateStats([]);
+      }
+      return;
+    }
+
+    const dispatches = await res.json();
+    lastDispatches = dispatches;
+    renderStream(dispatches);
+    updateStats(dispatches);
+
+    if (selectedDispatchId) {
+      const stillThere = dispatches.find((d) => d.id === selectedDispatchId);
+      if (stillThere) renderTrail(stillThere);
+    }
+  } catch (err) {
+    console.error('Fetch dispatches error:', err);
+  }
+}
+
+const STATUS_META = {
+  sent: { icon: 'send', color: 'status-sent', label: 'Sent' },
+  pending: { icon: 'schedule', color: 'status-pending', label: 'Queued' },
+  skipped_duplicate: { icon: 'shield', color: 'status-suppressed', label: 'Suppressed' },
+  skipped_sampled_out: { icon: 'tune', color: 'status-sampled', label: 'Sampled Out' },
+  failed: { icon: 'error', color: 'status-risk', label: 'Failed' },
+};
+
+function headlineFor(d) {
+  switch (d.status) {
+    case 'sent':
+      return `<span class="font-bold">Interview</span> sent to <span class="font-bold">${escapeHtml(d.user_id)}</span>`;
+    case 'pending':
+      return `Pending send to <span class="font-bold">${escapeHtml(d.user_id)}</span>`;
+    case 'skipped_duplicate':
+      return `Inbox protection triggered for <span class="font-bold">${escapeHtml(d.user_id)}</span>`;
+    case 'skipped_sampled_out':
+      return `Not selected for sampling — <span class="font-bold">${escapeHtml(d.user_id)}</span>`;
+    case 'failed':
+      return `Send failed for <span class="font-bold">${escapeHtml(d.user_id)}</span>`;
+    default:
+      return escapeHtml(d.user_id);
+  }
+}
+
+function sublineFor(d) {
+  switch (d.status) {
+    case 'sent':
+      return `Interview: ${d.interview_id} • Sent ${relativeTime(d.sent_at)}`;
+    case 'pending':
+      return `Interview: ${d.interview_id} • Sends ${countdown(d.due_at)}`;
+    case 'skipped_duplicate':
+    case 'skipped_sampled_out':
+    case 'failed':
+      return d.skip_reason || 'No further detail recorded';
+    default:
+      return d.interview_id;
+  }
+}
+
+function renderStream(dispatches) {
+  const container = document.getElementById('streamContainer');
+
+  if (dispatches.length === 0) {
+    container.innerHTML = `
+      <div class="p-12 text-center text-text-muted font-body-sm">
+        No outreach activity yet. Click a persona card above to simulate an event.
+      </div>`;
+    return;
+  }
+
+  const sorted = [...dispatches].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+  let newIndex = 0;
+  container.innerHTML = sorted
+    .map((d) => {
+      const meta = STATUS_META[d.status] || { icon: 'help', color: 'text-muted', label: d.status };
+      const selected = d.id === selectedDispatchId;
+      const isNew = !firstStreamRender && !knownDispatchIds.has(d.id);
+      const enterClass = isNew ? 'stream-item-new' : '';
+      const enterStyle = isNew ? `style="animation-delay: ${newIndex++ * 60}ms"` : '';
+      return `
+        <div onclick="selectDispatch('${d.id}')" ${enterStyle} class="${enterClass} bg-white/60 backdrop-blur-[16px] rounded-lg border ${selected ? 'border-primary' : 'border-border-glass'} p-md shadow-sm flex items-center gap-md cursor-pointer hover:shadow-md transition-shadow">
+          <div class="w-10 h-10 rounded-full bg-${meta.color}/12 text-${meta.color} flex items-center justify-center shrink-0">
+            <span class="material-symbols-outlined">${meta.icon}</span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="font-body-md text-text-primary truncate">${headlineFor(d)}</p>
+            <p class="font-body-sm text-text-muted truncate">${escapeHtml(sublineFor(d))}</p>
+          </div>
+          <div class="font-label-md text-${meta.color} uppercase tracking-wider shrink-0">${meta.label}</div>
+        </div>
+      `;
+    })
+    .join('');
+
+  sorted.forEach((d) => knownDispatchIds.add(d.id));
+  firstStreamRender = false;
+}
+
+function updateStats(dispatches) {
+  const counts = { sent: 0, pending: 0, skipped_duplicate: 0, skipped_sampled_out: 0, failed: 0 };
+  for (const d of dispatches) {
+    if (counts[d.status] !== undefined) counts[d.status] += 1;
+  }
+  document.querySelector('#chipSent [data-value]').innerText = counts.sent;
+  document.querySelector('#chipPending [data-value]').innerText = counts.pending;
+  document.querySelector('#chipSuppressed [data-value]').innerText = counts.skipped_duplicate;
+  document.querySelector('#chipSampled [data-value]').innerText = counts.skipped_sampled_out;
+  document.querySelector('#chipFailed [data-value]').innerText = counts.failed;
+}
+
+function trailStep(title, subtitle, state) {
+  const dotClass =
+    state === 'done' ? 'bg-status-sent' : state === 'failed' ? 'bg-status-risk' : 'bg-status-pending';
+  const titleClass = state === 'current' ? 'text-status-pending' : 'text-text-primary';
+  return `
+    <div class="relative">
+      <div class="absolute -left-[30px] top-1 w-3 h-3 rounded-full ${dotClass} border-2 border-white"></div>
+      <h4 class="font-body-md font-bold ${titleClass}">${title}</h4>
+      <p class="font-body-sm text-text-muted">${subtitle}</p>
+    </div>
+  `;
+}
+
+function messagePreviewFor(d) {
+  if (d.status === 'skipped_duplicate') {
+    return `[Safeguard active] ${d.user_id} already has an interview in flight for this rule's dedup window — send suppressed to avoid inbox fatigue.`;
+  }
+  if (d.status === 'skipped_sampled_out') {
+    return `[Sampling] ${d.user_id}'s action was recorded but this rule's sample_percent excluded them — no message was composed.`;
+  }
+  if (d.interview_id.includes('feature')) {
+    return `"Hey ${d.user_id}! We saw you tried a new feature — got a minute to tell us how it went?"`;
+  }
+  return `"Hi ${d.user_id}, we noticed a change on your account. Could you share a minute of feedback with us?"`;
+}
+
+function selectDispatch(id) {
+  selectedDispatchId = id;
+  const d = lastDispatches.find((x) => x.id === id);
+  if (d) renderTrail(d);
+  renderStream(lastDispatches);
+}
+
+function closeTrail() {
+  selectedDispatchId = null;
+  document.getElementById('trailBody').innerHTML = `
+    <p class="text-text-muted font-body-sm">Click any item in the Live Empathy Stream to inspect exactly why it did (or didn't) send.</p>`;
+  renderStream(lastDispatches);
+}
+
+function renderTrail(d) {
+  const sampledOut = d.status === 'skipped_sampled_out';
+  const duplicate = d.status === 'skipped_duplicate';
+
+  const steps = [
+    trailStep('Event Ingested', `Matched against client rules`, 'done'),
+    trailStep('Rule Matched', `Target interview: ${d.interview_id}`, 'done'),
+    trailStep(
+      'Sample Check',
+      sampledOut ? (d.skip_reason || 'Excluded by sample_percent') : 'Passed — included in sample',
+      sampledOut ? 'failed' : 'done'
+    ),
+    trailStep(
+      'Dedup Check',
+      duplicate ? (d.skip_reason || 'Duplicate within dedup window') : 'Passed — no blocking prior dispatch',
+      duplicate ? 'failed' : 'done'
+    ),
+  ];
+
+  if (!sampledOut && !duplicate) {
+    if (d.status === 'sent') {
+      steps.push(trailStep('Delivered', `send_interview() ran at ${new Date(d.sent_at).toLocaleTimeString()}`, 'done'));
+    } else if (d.status === 'pending') {
+      steps.push(trailStep('Awaiting Send Window', `Due ${countdown(d.due_at)}`, 'current'));
+    } else if (d.status === 'failed') {
+      steps.push(trailStep('Send Failed', d.skip_reason || 'Sender returned failure', 'failed'));
+    }
+  }
+
+  document.getElementById('trailBody').innerHTML = `
+    <div class="mb-lg">
+      <span class="font-label-md text-text-muted">Dispatch ID</span>
+      <div class="font-data-mono font-bold text-text-primary bg-surface-container-low px-2 py-1 rounded inline-block mt-1 truncate max-w-full">#${d.id.slice(0, 8)}</div>
+    </div>
+    <div class="relative pl-6 space-y-lg before:content-[''] before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-surface-container-high">
+      ${steps.join('')}
+    </div>
+    <div class="mt-lg pt-md border-t border-surface-container-low">
+      <span class="font-label-md text-text-muted">Message preview</span>
+      <p class="font-body-sm text-text-primary italic mt-1">${escapeHtml(messagePreviewFor(d))}</p>
+    </div>
+  `;
+}
+
+function relativeTime(iso) {
+  if (!iso) return 'just now';
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const diffSec = Math.round(diffMs / 1000);
+  if (diffSec < 10) return 'just now';
+  if (diffSec < 60) return `${diffSec}s ago`;
+  const diffMin = Math.round(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.round(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  return `${Math.round(diffHr / 24)}d ago`;
+}
+
+function countdown(iso) {
+  const diffMs = new Date(iso).getTime() - Date.now();
+  if (diffMs <= 0) return 'now (next poll)';
+  const diffMin = Math.round(diffMs / 60000);
+  if (diffMin < 1) return 'in <1m';
+  if (diffMin < 60) return `in ${diffMin}m`;
+  const hours = Math.floor(diffMin / 60);
+  const mins = diffMin % 60;
+  return `in ${hours}h ${mins}m`;
+}
+
+function escapeHtml(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+fetchDispatches();
+setInterval(fetchDispatches, 2000);

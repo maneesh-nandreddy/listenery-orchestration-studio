@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Listenery | Orchestration Studio</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+          "background-base": "#F8FAFC",
+          "tertiary-container": "#a36700",
+          "outline": "#7b7486",
+          "on-secondary": "#ffffff",
+          "on-secondary-container": "#00714d",
+          "on-tertiary": "#ffffff",
+          "on-surface-variant": "#494454",
+          "secondary": "#006c49",
+          "primary-container": "#8455ef",
+          "primary": "#6b38d4",
+          "error": "#ba1a1a",
+          "on-primary": "#ffffff",
+          "status-pending": "#F59E0B",
+          "outline-variant": "#cbc3d7",
+          "surface-container": "#eceef0",
+          "surface-variant": "#e0e3e5",
+          "text-muted": "#64748B",
+          "surface-elevated": "#FFFFFF",
+          "tertiary": "#825100",
+          "on-background": "#191c1e",
+          "background": "#f7f9fb",
+          "surface-tint": "#6d3bd7",
+          "surface-container-highest": "#e0e3e5",
+          "surface-container-high": "#e6e8ea",
+          "status-risk": "#F43F5E",
+          "on-surface": "#191c1e",
+          "status-suppressed": "#8B5CF6",
+          "status-sampled": "#94A3B8",
+          "status-sent": "#10B981",
+          "on-tertiary-container": "#fffbff",
+          "border-glass": "rgba(255, 255, 255, 0.6)",
+          "tertiary-fixed": "#ffddb8",
+          "on-error-container": "#93000a",
+          "error-container": "#ffdad6",
+          "inverse-surface": "#2d3133",
+          "surface-bright": "#f7f9fb",
+          "surface": "#f7f9fb",
+          "on-error": "#ffffff",
+          "surface-container-low": "#f2f4f6",
+          "text-primary": "#0F172A",
+          "surface-container-lowest": "#ffffff",
+          "on-primary-container": "#fffbff"
+        },
+        "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+        "spacing": {
+          "sm": "8px", "unit": "4px", "gutter": "24px", "xl": "40px",
+          "margin-desktop": "32px", "margin-mobile": "16px", "lg": "24px",
+          "margin-tablet": "24px", "md": "16px", "xs": "4px", "xxl": "64px"
+        },
+        "fontFamily": {
+          "headline-lg": ["Plus Jakarta Sans"], "body-lg": ["Inter"], "body-md": ["Inter"],
+          "data-mono": ["Inter"], "label-md": ["Inter"], "headline-md": ["Plus Jakarta Sans"],
+          "headline-sm": ["Plus Jakarta Sans"], "body-sm": ["Inter"]
+        },
+        "fontSize": {
+          "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+          "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+          "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+          "data-mono": ["14px", { "lineHeight": "20px", "letterSpacing": "-0.01em", "fontWeight": "500" }],
+          "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+          "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+          "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+          "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }]
+        }
+      }
+    }
+  }
+</script>
+<style>
+  @keyframes icon-breathe { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.12); opacity: 0.85; } }
+  .icon-breathe { animation: icon-breathe 2.4s ease-in-out infinite; display: inline-flex; }
+
+  @keyframes wave-bar { 0%, 100% { height: 5px; } 50% { height: 14px; } }
+  .wave-bar { animation: wave-bar 1s ease-in-out infinite; width: 3px; border-radius: 9999px; }
+  .wave-bar:nth-child(2) { animation-delay: 0.15s; }
+  .wave-bar:nth-child(3) { animation-delay: 0.3s; }
+
+  @keyframes icon-tick { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(-8deg); } 75% { transform: rotate(8deg); } }
+  .icon-tick { animation: icon-tick 1.8s ease-in-out infinite; display: inline-flex; }
+
+  @keyframes stream-fade-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes ring-fade { 0% { box-shadow: 0 0 0 3px rgba(107, 56, 212, 0.35); } 100% { box-shadow: 0 0 0 0 rgba(107, 56, 212, 0); } }
+  .stream-item-new { animation: stream-fade-in 0.35s ease-out both, ring-fade 2s ease-out both; }
+</style>
+</head>
+<body class="bg-background-base text-on-surface font-body-md h-screen flex overflow-hidden selection:bg-primary-container selection:text-on-primary-container">
+
+<!-- Toast Container -->
+<div id="toastContainer" class="fixed top-5 right-5 z-[60] space-y-2 pointer-events-none"></div>
+
+<!-- Side Nav -->
+<nav class="bg-surface-container-lowest text-primary font-label-md shadow-sm border-r border-outline-variant flex flex-col h-screen py-lg px-md w-64 fixed left-0 top-0 z-50">
+  <div class="mb-xl flex items-center gap-sm">
+    <div class="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container">
+      <span class="material-symbols-outlined icon-breathe" style="font-variation-settings: 'FILL' 1;">waves</span>
+    </div>
+    <div>
+      <h1 class="font-headline-sm text-headline-sm font-bold text-on-surface">Orchestration Studio</h1>
+      <p class="text-text-muted opacity-80">Global Dispatch</p>
+    </div>
+  </div>
+
+  <button id="seedBtn" onclick="seedData()" class="bg-primary text-on-primary hover:bg-surface-tint transition-colors w-full py-2 rounded-lg font-bold mb-md shadow-sm flex items-center justify-center gap-2">
+    <span class="material-symbols-outlined text-[18px]">auto_awesome</span>
+    Seed Workspace
+  </button>
+  <div class="mb-lg">
+    <label class="block text-text-muted mb-1 px-1">API Key</label>
+    <input id="apiKeyInput" type="text" placeholder="paste or seed a key" class="w-full bg-surface-container-low border border-outline-variant text-on-surface text-xs font-mono px-3 py-2 rounded-lg focus:outline-none focus:border-primary"/>
+    <div id="connectionStatus" class="flex items-center gap-1 mt-2 px-1 text-text-muted">
+      <span class="w-1.5 h-1.5 rounded-full bg-status-sampled"></span>
+      <span>Not connected</span>
+    </div>
+  </div>
+
+  <ul class="flex-1 flex flex-col gap-unit">
+    <li>
+      <a class="bg-primary-container text-on-primary-container rounded-lg font-bold transition-all duration-200 ease-in-out flex items-center gap-sm px-4 py-2" href="#">
+        <span class="material-symbols-outlined">dashboard</span>
+        Studio
+      </a>
+    </li>
+    <li>
+      <a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-all duration-200 ease-in-out flex items-center gap-sm px-4 py-2" href="#">
+        <span class="material-symbols-outlined">rule</span>
+        Rules
+      </a>
+    </li>
+    <li>
+      <a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-all duration-200 ease-in-out flex items-center gap-sm px-4 py-2" href="#">
+        <span class="material-symbols-outlined">security</span>
+        Safeguards
+      </a>
+    </li>
+  </ul>
+  <ul class="flex flex-col gap-unit mt-auto">
+    <li>
+      <a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-all duration-200 ease-in-out flex items-center gap-sm px-4 py-2" href="#">
+        <span class="material-symbols-outlined">settings</span>
+        Settings
+      </a>
+    </li>
+  </ul>
+</nav>
+
+<!-- Main -->
+<main class="ml-64 flex-1 flex flex-col h-full bg-background-base overflow-hidden">
+
+  <!-- Stat Header -->
+  <header class="min-h-20 bg-white/60 backdrop-blur-md border-b border-white/60 shadow-[0_20px_25px_-5px_rgba(15,23,42,0.05)] flex items-center px-margin-desktop py-sm justify-center z-40 shrink-0">
+    <div class="flex flex-wrap items-center gap-md w-full max-w-5xl">
+      <div id="chipSent" class="bg-status-sent/12 text-status-sent px-4 py-2 rounded-lg flex items-center gap-2 border border-border-glass">
+        <span class="material-symbols-outlined text-[18px]">send</span>
+        <span class="font-label-md">Sent</span>
+        <span class="font-data-mono font-bold ml-2" data-value>0</span>
+      </div>
+      <div id="chipPending" class="bg-status-pending/12 text-status-pending px-4 py-2 rounded-lg flex items-center gap-2 border border-border-glass">
+        <span class="material-symbols-outlined text-[18px] icon-tick">schedule</span>
+        <span class="font-label-md">Pending</span>
+        <span class="font-data-mono font-bold ml-2" data-value>0</span>
+      </div>
+      <div id="chipSuppressed" class="bg-status-suppressed/12 text-status-suppressed px-4 py-2 rounded-lg flex items-center gap-2 border border-border-glass">
+        <span class="material-symbols-outlined text-[18px]">shield</span>
+        <span class="font-label-md">Suppressed</span>
+        <span class="font-data-mono font-bold ml-2" data-value>0</span>
+      </div>
+      <div id="chipSampled" class="bg-status-sampled/12 text-status-sampled px-4 py-2 rounded-lg flex items-center gap-2 border border-border-glass">
+        <span class="material-symbols-outlined text-[18px]">tune</span>
+        <span class="font-label-md">Sampled Out</span>
+        <span class="font-data-mono font-bold ml-2" data-value>0</span>
+      </div>
+      <div id="chipFailed" class="bg-status-risk/12 text-status-risk px-4 py-2 rounded-lg flex items-center gap-2 border border-border-glass">
+        <span class="material-symbols-outlined text-[18px]">error</span>
+        <span class="font-label-md">Failed</span>
+        <span class="font-data-mono font-bold ml-2" data-value>0</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Canvas -->
+  <div class="flex-1 overflow-y-auto p-xl flex justify-center gap-gutter">
+    <div class="w-full max-w-4xl flex flex-col gap-xl">
+
+      <!-- Active Targets -->
+      <section>
+        <h2 class="font-headline-md text-headline-md text-text-primary mb-md">Active Targets</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+
+          <div class="bg-white/60 backdrop-blur-[16px] rounded-xl border border-border-glass p-md shadow-[0_8px_10px_-6px_rgba(15,23,42,0.05)] hover:shadow-[0_20px_25px_-5px_rgba(15,23,42,0.05)] transition-shadow duration-300">
+            <div class="flex items-start gap-md">
+              <div class="w-12 h-12 rounded-full bg-primary-container/70 text-on-primary-container flex items-center justify-center font-bold text-lg shrink-0">M</div>
+              <div>
+                <h3 class="font-headline-sm text-headline-sm text-text-primary">Maneesh</h3>
+                <p class="font-label-md text-primary">Power User</p>
+              </div>
+            </div>
+            <div class="mt-4 pt-4 border-t border-surface-container-low flex items-center justify-between">
+              <span class="text-text-muted font-body-sm">Tried a new feature</span>
+              <button onclick="triggerQuick('maneesh', 'feature_tried', 'maneesh@example.com')" class="text-primary font-label-md flex items-center gap-1 hover:underline">
+                <span class="material-symbols-outlined text-[16px]">bolt</span> Simulate
+              </button>
+            </div>
+          </div>
+
+          <div class="bg-white/60 backdrop-blur-[16px] rounded-xl border border-border-glass p-md shadow-[0_8px_10px_-6px_rgba(15,23,42,0.05)] hover:shadow-[0_20px_25px_-5px_rgba(15,23,42,0.05)] transition-shadow duration-300">
+            <div class="flex items-start gap-md">
+              <div class="w-12 h-12 rounded-full bg-status-risk/15 text-status-risk flex items-center justify-center font-bold text-lg shrink-0">D</div>
+              <div>
+                <h3 class="font-headline-sm text-headline-sm text-text-primary">Dharma</h3>
+                <p class="font-label-md text-status-risk">Churning Risk</p>
+              </div>
+            </div>
+            <div class="mt-4 pt-4 border-t border-surface-container-low flex items-center justify-between">
+              <span class="text-text-muted font-body-sm">About to churn</span>
+              <button onclick="triggerQuick('dharma', 'user_churned', 'dharma@example.com')" class="text-primary font-label-md flex items-center gap-1 hover:underline">
+                <span class="material-symbols-outlined text-[16px]">bolt</span> Simulate
+              </button>
+            </div>
+          </div>
+
+          <div class="bg-white/60 backdrop-blur-[16px] rounded-xl border border-border-glass p-md shadow-sm md:col-span-2">
+            <h3 class="font-headline-sm text-headline-sm text-text-primary mb-sm">Custom Event Dispatcher</h3>
+            <form onsubmit="submitCustomEvent(event)" class="grid grid-cols-1 md:grid-cols-4 gap-sm items-end">
+              <div>
+                <label class="block text-label-md text-text-muted mb-1">User ID</label>
+                <input id="userIdInput" type="text" value="test_user" required class="w-full bg-surface-container-low border border-outline-variant text-on-surface text-sm px-3 py-2 rounded-lg focus:outline-none focus:border-primary"/>
+              </div>
+              <div>
+                <label class="block text-label-md text-text-muted mb-1">Email</label>
+                <input id="emailInput" type="email" value="test_user@example.com" required class="w-full bg-surface-container-low border border-outline-variant text-on-surface text-sm px-3 py-2 rounded-lg focus:outline-none focus:border-primary"/>
+              </div>
+              <div>
+                <label class="block text-label-md text-text-muted mb-1">Event</label>
+                <select id="eventNameSelect" class="w-full bg-surface-container-low border border-outline-variant text-on-surface text-sm px-3 py-2 rounded-lg focus:outline-none focus:border-primary">
+                  <option value="user_churned">user_churned</option>
+                  <option value="feature_tried">feature_tried (20% sample)</option>
+                </select>
+              </div>
+              <button type="submit" class="bg-primary text-on-primary hover:bg-surface-tint transition-colors py-2 rounded-lg font-bold">
+                Dispatch
+              </button>
+            </form>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- Live Empathy Stream -->
+      <section>
+        <div class="flex items-center justify-between mb-md">
+          <div class="flex items-center gap-sm">
+            <h2 class="font-headline-md text-headline-md text-text-primary">Live Empathy Stream</h2>
+            <div class="flex items-end gap-[3px] h-4">
+              <div class="wave-bar bg-status-sent"></div>
+              <div class="wave-bar bg-status-sent"></div>
+              <div class="wave-bar bg-status-sent"></div>
+            </div>
+          </div>
+          <span class="text-text-muted font-label-md">Auto-syncing every 2s</span>
+        </div>
+        <div id="streamContainer" class="flex flex-col gap-sm">
+          <div class="p-8 text-center text-text-muted font-body-sm">Fetching interview orchestrations...</div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Decision Trail -->
+    <aside class="w-80 shrink-0 bg-white/80 backdrop-blur-xl border border-border-glass rounded-xl shadow-[0_20px_25px_-5px_rgba(15,23,42,0.05)] p-md flex flex-col self-start sticky top-xl">
+      <div class="flex justify-between items-center mb-lg pb-sm border-b border-surface-container-low">
+        <h3 class="font-headline-sm text-headline-sm text-text-primary">Decision Trail</h3>
+        <button onclick="closeTrail()" class="text-text-muted hover:bg-surface-container-low rounded-full p-1 transition-colors">
+          <span class="material-symbols-outlined text-sm">close</span>
+        </button>
+      </div>
+      <div id="trailBody">
+        <p class="text-text-muted font-body-sm">Click any item in the Live Empathy Stream to inspect exactly why it did (or didn't) send.</p>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<script src="/static/dashboard.js"></script>
+</body>
+</html>
